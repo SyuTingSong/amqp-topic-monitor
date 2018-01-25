@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/streadway/amqp"
 	"math/rand"
+	"runtime"
 )
 
 type Conf struct {
@@ -66,7 +67,12 @@ func configs() (cfg *Conf) {
 	flag.Parse()
 
 	if *version {
-		fmt.Println("1.0")
+		fmt.Printf(
+			"amonitor 1.0.1\n%s on %s %s\n",
+			runtime.Version(),
+			runtime.GOARCH,
+			runtime.GOOS,
+		)
 		os.Exit(1)
 	}
 
