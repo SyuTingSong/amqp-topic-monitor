@@ -2,6 +2,8 @@ package main
 
 import (
 	"os"
+	"os/signal"
+	"syscall"
 	"flag"
 	"fmt"
 	"github.com/streadway/amqp"
@@ -20,6 +22,7 @@ type Conf struct {
 	routingKeys    []string
 	queueName      string
 	deleteQueue    bool
+	separator      bool
 }
 
 func (cfg *Conf) url() string {
@@ -45,6 +48,7 @@ func configs() (cfg *Conf) {
 		kUsage = "output the routing key before every message"
 		qUsage = "the durable queue name, leave empty for exclusive queue"
 		dUsage = "delete the durable queue specified by -q option and exit"
+		sUsage = "output the message separator"
 	)
 	flag.StringVar(&cfg.host, "h", "localhost", hUsage)
 	flag.UintVar(&cfg.port, "p", 5672, pUsage)
@@ -55,6 +59,7 @@ func configs() (cfg *Conf) {
 	flag.BoolVar(&cfg.withRoutingKey, "k", false, kUsage)
 	flag.StringVar(&cfg.queueName, "q", "", qUsage)
 	flag.BoolVar(&cfg.deleteQueue, "d", false, dUsage)
+	flag.BoolVar(&cfg.separator, "s", false, sUsage)
 
 	flag.Parse()
 
@@ -71,6 +76,13 @@ func configs() (cfg *Conf) {
 }
 
 func main() {
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
+	go func(c chan os.Signal) {
+		<-c
+		os.Exit(0)
+	}(signalChan)
+
 	cfg := configs()
 
 	con, err := amqp.Dial(cfg.url())
@@ -148,6 +160,10 @@ func main() {
 	)
 	dieOnErr(err)
 
+	var separator = randomChars(40)
+	if cfg.separator {
+		fmt.Println(separator)
+	}
 	for msg := range d {
 		if cfg.withRoutingKey {
 			fmt.Println(msg.RoutingKey)
@@ -155,6 +171,9 @@ func main() {
 		fmt.Print(string(msg.Body))
 		if msg.Body[len(msg.Body)-1] != '\n' {
 			fmt.Print("\n")
+		}
+		if cfg.separator {
+			fmt.Println(separator)
 		}
 	}
 }
