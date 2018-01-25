@@ -49,6 +49,7 @@ func configs() (cfg *Conf) {
 		qUsage = "the durable queue name, leave empty for exclusive queue"
 		dUsage = "delete the durable queue specified by -q option and exit"
 		sUsage = "output the message separator"
+		VUsage = "display version"
 	)
 	flag.StringVar(&cfg.host, "h", "localhost", hUsage)
 	flag.UintVar(&cfg.port, "p", 5672, pUsage)
@@ -60,8 +61,14 @@ func configs() (cfg *Conf) {
 	flag.StringVar(&cfg.queueName, "q", "", qUsage)
 	flag.BoolVar(&cfg.deleteQueue, "d", false, dUsage)
 	flag.BoolVar(&cfg.separator, "s", false, sUsage)
+	version := flag.Bool("V", false, VUsage)
 
 	flag.Parse()
+
+	if *version {
+		fmt.Println("1.0")
+		os.Exit(1)
+	}
 
 	if "" == cfg.exchangeName {
 		usage()
