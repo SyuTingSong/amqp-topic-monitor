@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"os"
 	"flag"
 	"fmt"
@@ -19,6 +18,8 @@ type Conf struct {
 	withRoutingKey bool
 	exchangeName   string
 	routingKeys    []string
+	queueName      string
+	deleteQueue    bool
 }
 
 func (cfg *Conf) url() string {
@@ -42,6 +43,8 @@ func configs() (cfg *Conf) {
 		vUsage = "the vhost"
 		tUsage = "the name of the topic exchange"
 		kUsage = "output the routing key before every message"
+		qUsage = "the durable queue name, leave empty for exclusive queue"
+		dUsage = "delete the durable queue specified by -q option and exit"
 	)
 	flag.StringVar(&cfg.host, "h", "localhost", hUsage)
 	flag.UintVar(&cfg.port, "p", 5672, pUsage)
@@ -50,6 +53,8 @@ func configs() (cfg *Conf) {
 	flag.StringVar(&cfg.vhost, "v", "/", vUsage)
 	flag.StringVar(&cfg.exchangeName, "t", "log", tUsage)
 	flag.BoolVar(&cfg.withRoutingKey, "k", false, kUsage)
+	flag.StringVar(&cfg.queueName, "q", "", qUsage)
+	flag.BoolVar(&cfg.deleteQueue, "d", false, dUsage)
 
 	flag.Parse()
 
@@ -85,14 +90,47 @@ func main() {
 	)
 	dieOnErr(err)
 
-	q, err := ch.QueueDeclare(
-		"monitor."+cfg.exchangeName+"."+randomChars(10),
-		false,
-		false,
-		true,
-		false,
-		nil,
-	)
+	var q amqp.Queue
+	if cfg.deleteQueue {
+		if len(cfg.queueName) == 0 {
+			fmt.Fprintf(
+				os.Stderr,
+				"You must specify the name of the durable queue to be deleted by -q option\n"+
+					"Run %s -h for usage\n",
+				os.Args[0],
+			)
+			os.Exit(1)
+		}
+		_, err = ch.QueueDelete(
+			"monitor."+cfg.exchangeName+"."+cfg.queueName,
+			false,
+			false,
+			false,
+		)
+		dieOnErr(err)
+		os.Exit(0)
+	} else {
+		if len(cfg.queueName) > 0 {
+			q, err = ch.QueueDeclare(
+				"monitor."+cfg.exchangeName+"."+cfg.queueName,
+				true,
+				false,
+				false,
+				false,
+				nil,
+			)
+		} else {
+			q, err = ch.QueueDeclare(
+				"monitor."+cfg.exchangeName+"."+randomChars(10),
+				false,
+				false,
+				true,
+				false,
+				nil,
+			)
+		}
+	}
+
 	dieOnErr(err)
 
 	for _, key := range cfg.routingKeys {
@@ -123,7 +161,8 @@ func main() {
 
 func dieOnErr(err error) {
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }
 
