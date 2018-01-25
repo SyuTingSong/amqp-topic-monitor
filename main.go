@@ -169,7 +169,7 @@ func dieOnErr(err error) {
 func usage() {
 	fmt.Fprintf(
 		os.Stderr,
-		"Usage: %s -t <exchange_name> [options] [<routing_key>...]\n",
+		"Usage: %s [options] [<routing_key>...]\n",
 		os.Args[0],
 	)
 	flag.PrintDefaults()
