@@ -9,6 +9,7 @@ import (
 	"github.com/streadway/amqp"
 	"math/rand"
 	"runtime"
+	"time"
 )
 
 type Conf struct {
@@ -68,7 +69,7 @@ func configs() (cfg *Conf) {
 
 	if *version {
 		fmt.Printf(
-			"amonitor 1.0.1\n%s on %s %s\n",
+			"amonitor 1.0.2\n%s on %s %s\n",
 			runtime.Version(),
 			runtime.GOARCH,
 			runtime.GOOS,
@@ -213,6 +214,7 @@ func randomChars(length uint) string {
 	var base = []byte("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	b := make([]byte, length)
 	baseSize := len(base)
+	rand.Seed(time.Now().UnixNano())
 	for i = 0; i < length; i++ {
 		b[i] = base[rand.Intn(baseSize)]
 	}
